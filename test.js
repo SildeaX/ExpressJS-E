@@ -7,6 +7,7 @@ const fs = require('fs').promises;
 const path = require('path');
 var uuidv4 = require('uuid').v4;
 var pug = require('pug');
+const data = require('fs').readFileSync(path.join(__dirname, 'Database', 'newsDB.json'), 'utf8');
 
 //////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
@@ -24,17 +25,34 @@ app.get("/", function (req, res) {
     res.sendFile(path.join(__dirname, "html", "maintest.html"));
 });
 
+
+// Read existing users asynchronously
 async function readUserDB() {
     try {
-        const data = await fs.readFile(path.join(__dirname, 'userDB.json'), 'utf8');
+        const data = await fs.readFile(path.join(__dirname, 'Database', 'userDB.json'), 'utf8');
         return JSON.parse(data);
     } catch (err) {
         return [];
     }
 }
 
+// Write user data asynchronously
 async function writeUserDB(data) {
-    await fs.writeFile(path.join(__dirname, 'userDB.json'), JSON.stringify(data, null, 2), 'utf8');
+    await fs.writeFile(path.join(__dirname, 'Database', 'userDB.json'), JSON.stringify(data, null, 2), 'utf8');
+}
+
+// Read existing news synchronously
+function readNewsDB() {
+    try {
+        return JSON.parse(data);
+    } catch (err) {
+        return [];
+    }
+}
+
+// Write news data synchronously
+function writeNewsDB(data) {
+    require('fs').writeFileSync(path.join(__dirname, 'Database', 'newsDB.json'), JSON.stringify(data, null, 2), 'utf8');
 }
 
 //Register Page
@@ -116,11 +134,42 @@ app.post("/api/logouttest", async function (req, res) {
         const userIndex = userDatabase.findIndex(user => user.uuid === req.session.user.uuid);
         if (userIndex !== -1) {
             userDatabase[userIndex].isLoggedIn = false;
-            await writeUserDB(userDatabase); 
+            await writeUserDB(userDatabase);
         }
         req.session.destroy();
     }
     res.redirect("/");
+});
+
+//News Posting Function
+app.post("/api/news-posting-pageTest", async function (req, res) {
+    const { title, content, url } = req.body;
+
+    let newsDatabase = await readNewsDB();
+
+    if (!req.session.user || !req.session.user.isLoggedIn) {
+        return res.send("You must be logged in to post news.");
+    }
+
+    if (!title || !content || !url) {
+        return res.send("Please fill in each part.");
+    }
+
+    let newsID = newsDatabase.findIndex(news => news.id === req.session.news.id)+1;
+    
+    const newsData = {
+        id: newsID,
+        title: title,
+        content: content,
+        url: url,
+        author: req.session.user.email,
+        createdAt: new Date().toISOString()
+    };
+
+    newsDatabase.push(newsData);
+    await writeNewsDB(newsDatabase);
+
+    return res.redirect('/');
 });
 
 const PORT = 3000;

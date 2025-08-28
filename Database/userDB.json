@@ -1,0 +1,10 @@
+[
+  {
+    "uuid": "38b44b32-64fc-470e-bdda-1b70a14c83ed",
+    "name": "a",
+    "surname": "a",
+    "email": "a@gmail.com",
+    "password": "$2b$10$/f5fyx6sOB1L4LPf2dCWdO/K7xxZsqst.hP1n3HLvyBtpsIhcvope",
+    "isLoggedIn": true
+  }
+]
