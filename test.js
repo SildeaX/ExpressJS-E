@@ -7,7 +7,6 @@ const fs = require('fs').promises;
 const path = require('path');
 var uuidv4 = require('uuid').v4;
 var pug = require('pug');
-const data = require('fs').readFileSync(path.join(__dirname, 'Database', 'newsDB.json'), 'utf8');
 
 //////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
@@ -42,8 +41,9 @@ async function writeUserDB(data) {
 }
 
 // Read existing news synchronously
-function readNewsDB() {
+async function readNewsDB() {
     try {
+        const data = await fs.readFile(path.join(__dirname, 'Database', 'newsDB.json'), 'utf8');
         return JSON.parse(data);
     } catch (err) {
         return [];
@@ -51,8 +51,26 @@ function readNewsDB() {
 }
 
 // Write news data synchronously
-function writeNewsDB(data) {
-    require('fs').writeFileSync(path.join(__dirname, 'Database', 'newsDB.json'), JSON.stringify(data, null, 2), 'utf8');
+async function writeNewsDB(data) {
+    await fs.writeFile(path.join(__dirname, 'Database', 'newsDB.json'), JSON.stringify(data, null, 2), 'utf8');
+}
+
+//News Counter
+async function readNewsCounter() {
+    try {
+        const data = await fs.readFile(path.join(__dirname, 'Database', 'newsCounter.json'), 'utf8');
+        return JSON.parse(data).lastId;
+    } catch (err) {
+        return 0;
+    }
+}
+
+async function writeNewsCounter(newId) {
+    await fs.writeFile(
+        path.join(__dirname, 'Database', 'newsCounter.json'),
+        JSON.stringify({ lastId: newId }, null, 2),
+        'utf8'
+    );
 }
 
 //Register Page
@@ -155,8 +173,11 @@ app.post("/api/news-posting-pageTest", async function (req, res) {
         return res.send("Please fill in each part.");
     }
 
-    let newsID = newsDatabase.findIndex(news => news.id === req.session.news.id)+1;
-    
+    // New ID generation using newsCounter.json
+    let lastId = await readNewsCounter();
+    let newsID = lastId + 1;
+    await writeNewsCounter(newsID);
+
     const newsData = {
         id: newsID,
         title: title,
